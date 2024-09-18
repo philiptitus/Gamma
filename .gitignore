@@ -1,0 +1,81 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django migrations
+*/migrations/
+
+# Environment variables
+.env
+
+# Local development environment settings
+db.sqlite3
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+
+# Media files
+/media/
+
+# Static files
+/staticfiles/
+
+# Ignore virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# VS Code settings
+.vscode/
+
+# Python packaging
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-log.txt
+
+# IDE settings
+.idea/
+
+# JetBrains
+*.iml
+
+# AWS config files
+*.pem
+
+# macOS file
+.DS_Store
+
+# Windows file
+Thumbs.db
+
+# Coverage reports
+htmlcov/
+.tox/
+.coverage
+.cache
+.pytest_cache/
+
+# Whitenoise static file cache
+/staticfiles/
+
+# Ignore compiled translations
+*.mo
+
+# PyCharm specific
+.idea/
+
+# Node.js specific
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Other editors
+*.swp
+
