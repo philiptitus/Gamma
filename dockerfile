@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10-slim
 
 # Set the working directory in the container
 WORKDIR /app
@@ -6,7 +6,7 @@ WORKDIR /app
 ADD ./requirements.txt /app/requirements.txt
 
 # Install any needed packages specified in requirements.txt
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 ADD . /app
 # Install system dependencies
@@ -14,7 +14,9 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender-dev \
-    libgl1-mesa-glx
+    libgl1-mesa-glx \
+    libglib2.0-0  # Add this line to install libgthread
+
 
 
 
@@ -30,4 +32,7 @@ EXPOSE 8000
 ENV NAME World
 
 # Run the command to start uWSGI
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "gamma.wsgi:application", "--bind", "0.0.0.0:8000"]
+
+
