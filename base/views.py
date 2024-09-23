@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import VideoAnalysisSerializer
 import cv2
-from deepface import DeepFace
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.db import transaction
 from .models import VideoAnalysis
@@ -13,27 +12,20 @@ from django.core.files.base import ContentFile
 from threading import Thread
 
 import logging
-
-
-
 import threading
-import logging
 import uuid
 from queue import Queue
 import boto3
 import io
-import numpy as np
 from django.core.files.base import ContentFile
 from django.db import transaction
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-import cv2
-from deepface import DeepFace
-from .models import VideoAnalysis
 from django.conf import settings
 from tempfile import NamedTemporaryFile
+from .utils import analyze_video,send_normal_email
 
 logger = logging.getLogger(__name__)
 
@@ -63,18 +55,15 @@ class AnalyzeVideoView(APIView):
 
     def worker(self):
         while True:
-            video, token = task_queue.get()
+            video, token, email = task_queue.get()
             try:
-                self.process_video(video, token)
+                self.process_video(video, token, email)
             except Exception as e:
                 logger.error(f"Error processing video: {e}")
             finally:
                 task_queue.task_done()
 
-
-
-
-    def process_video(self, video, token):
+    def process_video(self, video, token, email):
         try:
             AWS_S3_CUSTOM_DOMAIN = settings.AWS_S3_CUSTOM_DOMAIN
 
@@ -98,7 +87,7 @@ class AnalyzeVideoView(APIView):
                 temp_file_path = temp_file.name
 
             # Analyze the video
-            result = self.analyze_video(temp_file_path)
+            result = analyze_video(temp_file_path)
             if not result:
                 logger.error("No results from video analysis.")
                 return
@@ -109,6 +98,22 @@ class AnalyzeVideoView(APIView):
             video_analysis.calm_percentage = result['calm_percentage']
             video_analysis.emotion_counts = result['emotion_counts']
             video_analysis.save()
+
+            template_path = os.path.join(settings.BASE_DIR, 'base/email_templates', 'Gamma.html')
+            with open(template_path, 'r', encoding='utf-8') as template_file:
+                html_content = template_file.read()
+
+            email_data = {
+                'email_subject': 'Your Screening Session Results',
+                'email_body': html_content,
+                'to_email': email,
+                'context': {
+                    'calm': video_analysis.calm_percentage,
+                    'dominant': video_analysis.dominant_emotion
+                },
+            }
+            send_normal_email(email_data)
+            
         except Exception as e:
             logger.error(f"Error processing video: {e}")
             raise
@@ -116,8 +121,11 @@ class AnalyzeVideoView(APIView):
     @transaction.atomic
     def post(self, request):
         video = request.FILES.get('video')
+        email = request.data.get('email')
         if not video:
             return Response({"error": "No video provided."}, status=status.HTTP_400_BAD_REQUEST)
+        if not email:
+            return Response({"error": "No email provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Generate and send token before analysis
         token = self.generate_token()
@@ -128,309 +136,10 @@ class AnalyzeVideoView(APIView):
         VideoAnalysis.objects.create(token=token)
 
         # Add the task to the queue
-        task_queue.put((video, token))
+        task_queue.put((video, token, email))
 
         return response
-
-    def analyze_video(self, temp_file_path):
-        cap = cv2.VideoCapture(temp_file_path)
-        frame_skip = 5
-        resize_factor = 0.5
-
-        total_frames = 0
-        calm_frames = 0
-        emotion_counts = {}
-        frame_count = 0
-
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            frame_count += 1
-            if frame_count % frame_skip != 0:
-                continue
-
-            frame = cv2.resize(frame, (0, 0), fx=resize_factor, fy=resize_factor)
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            results = DeepFace.analyze(rgb_frame, actions=['emotion'], enforce_detection=False, detector_backend='mtcnn')
-
-            for result in results:
-                dominant_emotion = result['dominant_emotion']
-                total_frames += 1
-                if dominant_emotion in ['neutral', 'happy']:
-                    calm_frames += 1
-
-                emotion_counts.setdefault(dominant_emotion, 0)
-                emotion_counts[dominant_emotion] += 1
-
-        cap.release()
-        cv2.destroyAllWindows()
-
-        if total_frames == 0: 
-            return None
-
-        calm_percentage = (calm_frames / total_frames) * 100
-        most_dominant_emotion = max(emotion_counts, key=emotion_counts.get)
-
-        return {
-            "dominant_emotion": most_dominant_emotion,
-            "calm_percentage": calm_percentage,
-            "emotion_counts": emotion_counts,
-        }
-
-
-
-# class AnalyzeVideoView(APIView):  
-#     parser_classes = (MultiPartParser, FormParser)
-
-#     def generate_token(self):
-#         return uuid.uuid4()
-
-#     def process_video(self, video, token):
-#         # Create a temporary video file in the memory
-#         temp_video_path = f'temp_{video.name}'
-#         with open(temp_video_path, 'wb+') as temp_video:
-#             for chunk in video.chunks():
-#                 temp_video.write(chunk)
-
-#         # Analyze the video
-#         result = self.analyze_video(temp_video_path)
-#         if not result:
-#             # Log error if needed
-#             return
-
-#         # Create a ContentFile from the video content
-#         with open(temp_video_path, 'rb') as temp_video:
-#             video_content = ContentFile(temp_video.read())
-
-#         # Create the VideoAnalysis instance
-#         video_analysis = VideoAnalysis.objects.create(
-#             video=video_content,
-#             dominant_emotion=result['dominant_emotion'],
-#             calm_percentage=result['calm_percentage'],
-#             emotion_counts=result['emotion_counts'],
-#             token=token
-#         )
-
-#         # Clean up the temporary video file
-#         os.remove(temp_video_path)
-
-#     @transaction.atomic
-#     def post(self, request):
-#         video = request.FILES.get('video')
-#         if not video:
-#             return Response({"error": "No video provided."}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Generate and send token before analysis
-#         token = self.generate_token()
-#         response_data = {"token": token}
-#         response = Response(response_data, status=status.HTTP_200_OK)
-
-#         # Process the video in a separate thread
-#         thread = Thread(target=self.process_video, args=(video, token))
-#         thread.start()
-
-#         return response
-
-#     def analyze_video(self, video_path):
-#         cap = cv2.VideoCapture(video_path)
-#         frame_skip = 5
-#         resize_factor = 0.5
-
-#         total_frames = 0
-#         calm_frames = 0
-#         emotion_counts = {}
-#         frame_count = 0
-
-#         while cap.isOpened():
-#             ret, frame = cap.read()
-#             if not ret:
-#                 break
-
-#             frame_count += 1
-#             if frame_count % frame_skip != 0:
-#                 continue
-
-#             frame = cv2.resize(frame, (0, 0), fx=resize_factor, fy=resize_factor)
-#             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-#             results = DeepFace.analyze(rgb_frame, actions=['emotion'], enforce_detection=False, detector_backend='mtcnn')
-
-#             for result in results:
-#                 dominant_emotion = result['dominant_emotion']
-#                 total_frames += 1
-#                 if dominant_emotion in ['neutral', 'happy']:
-#                     calm_frames += 1
-
-#                 emotion_counts.setdefault(dominant_emotion, 0)
-#                 emotion_counts[dominant_emotion] += 1
-
-#         cap.release()
-#         cv2.destroyAllWindows()
-
-#         if total_frames == 0:
-#             return None
-
-#         calm_percentage = (calm_frames / total_frames) * 100
-#         most_dominant_emotion = max(emotion_counts, key=emotion_counts.get)
-
-#         return {
-#             "dominant_emotion": most_dominant_emotion,
-#             "calm_percentage": calm_percentage,
-#             "emotion_counts": emotion_counts,
-#         }
-
-
-
-
-
-
-# import threading
-# import logging
-# import os
-# import uuid
-# from queue import Queue
-# from django.core.files.base import ContentFile
-# from django.db import transaction
-# from rest_framework.parsers import MultiPartParser, FormParser
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from rest_framework import status
-# import cv2
-# from deepface import DeepFace
-# from .models import VideoAnalysis
-
-# logger = logging.getLogger(__name__)
-
-# # Initialize a queue to hold video processing tasks
-# task_queue = Queue()
-
-# class AnalyzeVideoView(APIView):
-#     parser_classes = (MultiPartParser, FormParser)
-
-#     def __init__(self):
-#         super().__init__()
-#         self.worker_thread = threading.Thread(target=self.worker)
-#         self.worker_thread.daemon = True
-#         self.worker_thread.start()
-
-#     def generate_token(self):
-#         return uuid.uuid4()
-
-#     def worker(self):
-#         while True:
-#             video, token = task_queue.get()
-#             try:
-#                 self.process_video(video, token)
-#             except Exception as e:
-#                 logger.error(f"Error processing video: {e}")
-#             finally:
-#                 task_queue.task_done()
-
-#     def process_video(self, video, token):
-#         try:
-#             # Create a temporary video file in the memory
-#             temp_video_path = f'temp_{video.name}'
-#             with open(temp_video_path, 'wb+') as temp_video:
-#                 for chunk in video.chunks():
-#                     temp_video.write(chunk)
-
-#             # Analyze the video
-#             result = self.analyze_video(temp_video_path)
-#             if not result:
-#                 # Log error if needed
-#                 logger.error("No results from video analysis.")
-#                 return
-
-#             # Create a ContentFile from the video content
-#             with open(temp_video_path, 'rb') as temp_video:
-#                 video_content = ContentFile(temp_video.read())
-
-#             # Create the VideoAnalysis instance
-#             video_analysis = VideoAnalysis.objects.get(token=token)
-#             video_analysis.dominant_emotion = result['dominant_emotion']
-#             video_analysis.calm_percentage = result['calm_percentage']
-#             video_analysis.emotion_counts = result['emotion_counts']
-#             video_analysis.video.save(f"{token}.mp4", video_content)
-#             video_analysis.save()
-
-#             # Clean up the temporary video file
-#             os.remove(temp_video_path)
-#         except Exception as e:
-#             logger.error(f"Error processing video: {e}")
-#             raise
-
-#     @transaction.atomic
-#     def post(self, request):
-#         video = request.FILES.get('video')
-#         if not video:
-#             return Response({"error": "No video provided."}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Generate and send token before analysis
-#         token = self.generate_token()
-#         response_data = {"token": str(token)}
-#         response = Response(response_data, status=status.HTTP_200_OK)
-
-#         # Save initial VideoAnalysis object
-#         VideoAnalysis.objects.create(token=token) 
-
-#         # Add the task to the queue
-#         task_queue.put((video, token))
-
-#         return response
-
-#     def analyze_video(self, video_path):
-#         cap = cv2.VideoCapture(video_path)
-#         frame_skip = 5
-#         resize_factor = 0.5
-
-#         total_frames = 0
-#         calm_frames = 0
-#         emotion_counts = {}
-#         frame_count = 0
-
-#         while cap.isOpened():
-#             ret, frame = cap.read()
-#             if not ret:
-#                 break
-
-#             frame_count += 1
-#             if frame_count % frame_skip != 0:
-#                 continue
-
-#             frame = cv2.resize(frame, (0, 0), fx=resize_factor, fy=resize_factor)
-#             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-#             results = DeepFace.analyze(rgb_frame, actions=['emotion'], enforce_detection=False, detector_backend='mtcnn')
-
-#             for result in results:
-#                 dominant_emotion = result['dominant_emotion']
-#                 total_frames += 1
-#                 if dominant_emotion in ['neutral', 'happy']:
-#                     calm_frames += 1
-
-#                 emotion_counts.setdefault(dominant_emotion, 0)
-#                 emotion_counts[dominant_emotion] += 1
-
-#         cap.release()
-#         cv2.destroyAllWindows()
-
-#         if total_frames == 0:
-#             return None
-
-#         calm_percentage = (calm_frames / total_frames) * 100
-#         most_dominant_emotion = max(emotion_counts, key=emotion_counts.get)
-
-#         return {
-#             "dominant_emotion": most_dominant_emotion,
-#             "calm_percentage": calm_percentage,
-#             "emotion_counts": emotion_counts,
-#         }
-
-
-
+    
 
 
 # views.py
@@ -453,6 +162,7 @@ import logging
 from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
+
 
 
 
