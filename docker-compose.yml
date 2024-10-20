@@ -14,6 +14,11 @@ services:
       - DEBUG=1
       - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1
       - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres  # Connection to the Postgres DB
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # Maximum size of a log file
+        max-file: "3"     # Maximum number of log files to keep
 
   db:
     image: postgres:13
@@ -23,6 +28,11 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # Maximum size of a log file
+        max-file: "3"     # Maximum number of log files to keep
 
 volumes:
   postgres_data:
