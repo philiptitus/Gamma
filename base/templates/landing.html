@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamma - Emotion & Mood Analyzer</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: #333;
+            background-color: #f7f7f7;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        header {
+            padding: 20px;
+            background-color: #ff6f61;
+            color: white;
+        }
+        header img {
+            width: 60px;
+            height: auto;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .content h2 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .features, .technologies {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .feature, .technology {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .feature h3, .technology h3 {
+            color: #ff6f61;
+        }
+        footer {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #333;
+            color: white;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <img src="https://www.svgrepo.com/show/164111/black-hole.svg" alt="Gamma Logo">
+        <h1>Gamma</h1>
+        <p>The Next-Level Emotion & Mood Analyzer</p>
+    </div>
+</header>
+
+<div class="container content">
+    <h2>About Gamma</h2>
+    <p>Gamma is an advanced emotion and mood analyzer that uses video recordings to provide in-depth emotional insights. Through our unique blend of AI and machine learning, Gamma detects and monitors emotional shifts, calmness levels, and stress indicators, creating a comprehensive emotional analysis tailored for each user.</p>
+
+    <h2>Core Features</h2>
+    <div class="features">
+        <div class="feature">
+            <h3>Video Emotion Analysis</h3>
+            <p>Identifies emotions in real-time, including happiness, calmness, and stress.</p>
+        </div>
+        <div class="feature">
+            <h3>Emotion Trends & Stability</h3>
+            <p>Visualizes emotional changes, displaying trends and assessing stability over time.</p>
+        </div>
+        <div class="feature">
+            <h3>Stress & Fatigue Detection</h3>
+            <p>Detects stress and fatigue through facial and eye pattern analysis.</p>
+        </div>
+        <div class="feature">
+            <h3>Token-Based Session Tracking</h3>
+            <p>Each session is assigned a unique token for easy tracking of individual analyses.</p>
+        </div>
+        <div class="feature">
+            <h3>AWS S3 Integration</h3>
+            <p>Enables efficient video storage and processing using Amazon S3.</p>
+        </div>
+        <div class="feature">
+            <h3>Email Reporting</h3>
+            <p>Sends detailed reports with dominant emotions, stability scores, and calmness percentages to users.</p>
+        </div>
+    </div>
+
+    <h2>Technologies Used</h2>
+    <div class="technologies">
+        <div class="technology">
+            <h3>Python Libraries</h3>
+            <p>Leverages Django, OpenCV, DeepFace, and TensorFlow for performance-optimized analysis.</p>
+        </div>
+        <div class="technology">
+            <h3>AWS S3 Storage</h3>
+            <p>Efficiently manages and streams video files for large-scale analyses.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>Currently, the mobile application is under development. Access the fully functional API via the documentation.</p>
+    </footer>
+</div>
+
+</body>
+</html>

@@ -5,9 +5,12 @@ from django.conf.urls.static import static
 from base.views import *
 
 urlpatterns = [
+    path('', landing_page, name='landing-page'),
+
     path('admin/', admin.site.urls),
 
     path('analyze/', AnalyzeVideoView.as_view(), name='analyze-video'),
+
 
     path('get/<uuid:token>/', GetAnalysisResultView.as_view(), name='get_analysis_result'),
 
