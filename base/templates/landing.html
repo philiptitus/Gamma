@@ -3,124 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gamma - Emotion & Mood Analyzer</title>
+    <title>Gamma API Preview</title>
+    <link rel="icon" href="https://izpkijnmscmbolveusoo.supabase.co/storage/v1/object/public/Galleria/personal/black-hole-svgrepo-com%20(1).png" type="image/png">
     <style>
-        body {
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
             font-family: Arial, sans-serif;
-            color: #333;
-            background-color: #f7f7f7;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, #eeeeee, #f9f9f9);
+            color: #333;
             padding: 20px;
             text-align: center;
         }
-        header {
+
+        .container {
+            width: 90%;
+            max-width: 850px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
             padding: 20px;
-            background-color: #ff6f61;
-            color: white;
+            margin-top: 20px;
         }
-        header img {
-            width: 60px;
-            height: auto;
+
+        .logo img {
+            width: 80px;
+            height: 80px;
+            animation: rotate 10s linear infinite;
         }
-        header h1 {
-            margin: 0;
-            font-size: 2.5rem;
-        }
-        .content {
-            padding: 20px 0;
-        }
-        .content h2 {
-            font-size: 2rem;
+
+        .header {
+            font-size: 26px;
+            font-weight: bold;
             color: #333;
-            margin-bottom: 20px;
+            margin: 20px 0;
         }
-        .features, .technologies {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
+
+        .header-subtext {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
         }
-        .feature, .technology {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            width: 300px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+        .section {
+            margin: 25px 0;
         }
-        .feature h3, .technology h3 {
-            color: #ff6f61;
+
+        .section-title {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 10px;
+            color: #58a65a;
         }
-        footer {
-            margin-top: 40px;
-            padding: 20px;
-            background-color: #333;
+
+        .features-list, .technologies-list {
+            list-style: none;
+            padding: 0;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .features-list li, .technologies-list li {
+            padding: 8px 0;
+            border-left: 4px solid #58a65a;
+            padding-left: 10px;
+            background: rgba(255, 255, 204, 0.1);
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #58a65a;
             color: white;
-            font-size: 0.9rem;
+            padding: 10px 25px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+            text-decoration: none;
+            margin-top: 15px;
+        }
+
+        .cta-button:hover {
+            background: #4a9450;
+            transform: scale(1.05);
+        }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #666;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
+    <div class="logo">
+        <img src="https://izpkijnmscmbolveusoo.supabase.co/storage/v1/object/public/Galleria/personal/black-hole-svgrepo-com%20(1).png" alt="Gamma API Logo">
+    </div>
 
-<header>
     <div class="container">
-        <img src="https://www.svgrepo.com/show/164111/black-hole.svg" alt="Gamma Logo">
-        <h1>Gamma</h1>
-        <p>The Next-Level Emotion & Mood Analyzer</p>
+        <div class="header">Gamma API - Preview</div>
+        <div class="header-subtext">
+            <p>This is just a preview page! A mobile app is coming soon, built in React Native.</p>
+        </div>
+
+        <div class="section">
+            <p>If you’d like to be among the first to know when the app is officially launched, feel free to sign up!</p>
+            <a href="https://mrphilip.pythonanywhere.com/contact/" class="cta-button">Sign Up to be Notified</a>
+        </div>
+
+        <div class="section">
+            <p>For now, you can explore and interact with the API:</p>
+            <a href="https://documenter.getpostman.com/view/31401198/2sAY4yegFh" class="cta-button">View API Documentation</a>
+        </div>
+
+        <!-- About Gamma -->
+        <div class="section">
+            <div class="section-title">About Gamma</div>
+            <p>Gamma is an advanced emotion and mood analyzer that uses video recordings to provide in-depth emotional insights. Through our unique blend of AI and machine learning, Gamma detects and monitors emotional shifts, calmness levels, and stress indicators, creating a comprehensive emotional analysis tailored for each user.</p>
+        </div>
+
+        <!-- Core Features -->
+        <div class="section">
+            <div class="section-title">Core Features</div>
+            <ul class="features-list">
+                <li>Video Emotion Analysis: Identifies emotions in real-time, including happiness, calmness, and stress.</li>
+                <li>Emotion Trends & Stability: Visualizes emotional changes, displaying trends and assessing stability over time.</li>
+                <li>Stress & Fatigue Detection: Detects stress and fatigue through facial and eye pattern analysis.</li>
+                <li>Token-Based Session Tracking: Each session is assigned a unique token for easy tracking of individual analyses.</li>
+                <li>AWS S3 Integration: Enables efficient video storage and processing using Amazon S3.</li>
+                <li>Email Reporting: Sends detailed reports with dominant emotions, stability scores, and calmness percentages to users.</li>
+            </ul>
+        </div>
+
+        <!-- Technologies Used -->
+        <div class="section">
+            <div class="section-title">Technologies Used</div>
+            <ul class="technologies-list">
+                <li>Python Libraries: Leverages Django, OpenCV, DeepFace, and TensorFlow for performance-optimized analysis.</li>
+                <li>AWS S3 Storage: Efficiently manages and streams video files for large-scale analyses.</li>
+                <li>React Native (mobile app coming soon)</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            &copy; 2024 Philip Titus
+        </div>
     </div>
-</header>
-
-<div class="container content">
-    <h2>About Gamma</h2>
-    <p>Gamma is an advanced emotion and mood analyzer that uses video recordings to provide in-depth emotional insights. Through our unique blend of AI and machine learning, Gamma detects and monitors emotional shifts, calmness levels, and stress indicators, creating a comprehensive emotional analysis tailored for each user.</p>
-
-    <h2>Core Features</h2>
-    <div class="features">
-        <div class="feature">
-            <h3>Video Emotion Analysis</h3>
-            <p>Identifies emotions in real-time, including happiness, calmness, and stress.</p>
-        </div>
-        <div class="feature">
-            <h3>Emotion Trends & Stability</h3>
-            <p>Visualizes emotional changes, displaying trends and assessing stability over time.</p>
-        </div>
-        <div class="feature">
-            <h3>Stress & Fatigue Detection</h3>
-            <p>Detects stress and fatigue through facial and eye pattern analysis.</p>
-        </div>
-        <div class="feature">
-            <h3>Token-Based Session Tracking</h3>
-            <p>Each session is assigned a unique token for easy tracking of individual analyses.</p>
-        </div>
-        <div class="feature">
-            <h3>AWS S3 Integration</h3>
-            <p>Enables efficient video storage and processing using Amazon S3.</p>
-        </div>
-        <div class="feature">
-            <h3>Email Reporting</h3>
-            <p>Sends detailed reports with dominant emotions, stability scores, and calmness percentages to users.</p>
-        </div>
-    </div>
-
-    <h2>Technologies Used</h2>
-    <div class="technologies">
-        <div class="technology">
-            <h3>Python Libraries</h3>
-            <p>Leverages Django, OpenCV, DeepFace, and TensorFlow for performance-optimized analysis.</p>
-        </div>
-        <div class="technology">
-            <h3>AWS S3 Storage</h3>
-            <p>Efficiently manages and streams video files for large-scale analyses.</p>
-        </div>
-    </div>
-
-    <footer>
-        <p>Currently, the mobile application is under development. Access the fully functional API via the documentation.</p>
-    </footer>
-</div>
-
 </body>
 </html>

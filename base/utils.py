@@ -4,6 +4,12 @@ from deepface import DeepFace
 import logging
 from concurrent.futures import ThreadPoolExecutor
 import tensorflow as tf
+from django.core.mail import EmailMultiAlternatives
+from django.template import Template, Context
+from django.utils.html import strip_tags
+from django.conf import settings
+import os
+from moviepy.editor import VideoFileClip
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +27,7 @@ def analyze_frame(frame):
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = DeepFace.analyze(rgb_frame, actions=['emotion'], enforce_detection=False, detector_backend='mtcnn')
     return results
+
 
 def analyze_video(temp_file_path):
     cap = cv2.VideoCapture(temp_file_path)
@@ -74,13 +81,6 @@ def analyze_video(temp_file_path):
     }
 
 
-from django.core.mail import EmailMultiAlternatives
-from django.template import Template, Context
-from django.utils.html import strip_tags
-from django.conf import settings
-
-
-
 def send_normal_email(data):
     # Load and render the template with context
     template = Template(data['email_body'])
@@ -99,5 +99,24 @@ def send_normal_email(data):
 
     # Send email
     email.send()
+
+
+
+
+
+def get_video_details(video_path):
+    """
+    Given a video file path, return its size in MB and duration in seconds.
+    """
+    # Get video size in MB
+    file_size = os.path.getsize(video_path) / (1024 * 1024)  # Convert to MB
+
+    # Get video duration in seconds
+    video = VideoFileClip(video_path)
+    video_duration = video.duration  # Duration in seconds
+
+    print(f"Video Size: {file_size:.2f} MB")
+    print(f"Video Duration: {video_duration:.2f} seconds")
+    return file_size, video_duration
 
 

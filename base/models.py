@@ -58,6 +58,7 @@ class CustomUser(AbstractUser):
 class VideoAnalysis(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, blank=True, null=True)
     video = models.FileField(upload_to='videos/')
+    title = models.CharField(max_length=50, blank=True, null=True)
     analyzed_on = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     dominant_emotion = models.CharField(max_length=50, blank=True, null=True)
     calm_percentage = models.FloatField(blank=True, null=True)

@@ -33,7 +33,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from django.conf import settings
 from tempfile import NamedTemporaryFile
-from .utils import analyze_video,send_normal_email
+from .utils import *
 from django.db import IntegrityError
 from django.core.validators import *
 
@@ -52,7 +52,6 @@ s3_client = boto3.client(
     region_name=settings.AWS_S3_REGION_NAME
 )
 
-
 class AnalyzeVideoView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
@@ -68,15 +67,14 @@ class AnalyzeVideoView(APIView):
 
     def worker(self):
         while True:
-            video, token, email, user = task_queue.get()
+            video, title, token, email, user = task_queue.get()
             try:
-                self.process_video(video, token, email, user)
+                self.process_video(video, title, token, email, user)
             except Exception as e:
                 logger.error(f"Error processing video: {e}")
             finally:
                 task_queue.task_done()
-
-    def process_video(self, video, token, email, user):
+    def process_video(self, video, title, token, email, user):
         try:
             AWS_S3_CUSTOM_DOMAIN = settings.AWS_S3_CUSTOM_DOMAIN
 
@@ -100,6 +98,39 @@ class AnalyzeVideoView(APIView):
                 temp_file_path = temp_file.name
 
             # Analyze the video
+            file_size, video_duration = get_video_details(temp_file_path)
+            max_size_mb = 100
+            max_duration_seconds = 300
+            error_message = (
+                f"Error! You violated the size requirements. Gamma API allows up to 5-minute long videos and your video "
+                f"should not exceed 100 MB in size. The video you provided to the API was {video_duration:.2f} seconds long "
+                f"and {file_size:.2f} MB big. Please check on that and try again.\n\n"
+                f"Note from the developer: You are receiving this error because you are using a deployed server version of "
+                f"Gamma API. We put these constraints in place to save on cloud resources. Though you can still remove these "
+                f"restrictions by cloning and working on the repo locally: https://github.com/philiptitus/Gamma.git. "
+                f"However, if you want to support me to make the deployed server meet such capabilities, don't hesitate to "
+                f"contact me at: https://mrphilip.pythonanywhere.com/contact/."
+            )
+            
+            # Return an error if size or duration exceeds the limits
+            if file_size > max_size_mb or video_duration > max_duration_seconds:
+                logger.error("Video size or duration exceeded limits; halting processing.")
+                template_path2 = os.path.join(settings.BASE_DIR, 'base/email_templates', 'Quota.html')
+                with open(template_path2, 'r', encoding='utf-8') as template_file2:
+                    html_content2 = template_file2.read()
+                email_data2 = {
+                    'email_subject': 'Gamma API Quota Exceeded!',
+                    'email_body': html_content2,
+                    'to_email': email,
+                    'context': {
+                        'warning': error_message,
+
+                    },
+                }
+                send_normal_email(email_data2)
+                return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Proceed with video analysis if no errors
             result = analyze_video(temp_file_path)
             if not result:
                 logger.error("No results from video analysis.")
@@ -127,6 +158,7 @@ class AnalyzeVideoView(APIView):
                 },
             }
             send_normal_email(email_data)
+            
 
         except Exception as e:
             logger.error(f"Error processing video: {e}")
@@ -135,6 +167,7 @@ class AnalyzeVideoView(APIView):
     @transaction.atomic
     def post(self, request):
         video = request.FILES.get('video')
+        title = request.data.get('title', None)
         if not video:
             return Response({"error": "No video provided."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -146,13 +179,20 @@ class AnalyzeVideoView(APIView):
         response_data = {"token": str(token)}
         response = Response(response_data, status=status.HTTP_200_OK)
 
+        # Generate a random title if not provided
+        if not title:
+            title = str(uuid.uuid4())
+
         # Save initial VideoAnalysis object
-        video_analysis = VideoAnalysis.objects.create(token=token, user=request.user)
+        video_analysis = VideoAnalysis.objects.create(token=token, user=request.user, title=title)
 
         # Add the task to the queue
-        task_queue.put((video, token, email, request.user))
+        task_queue.put((video, title, token, email, request.user))
 
         return response
+
+
+
 # views.py
 import os
 import uuid
@@ -446,6 +486,98 @@ class GetAnalysisResultView(APIView):
         except VideoAnalysis.DoesNotExist:
             return Response({"error": "No analysis found for this token."}, status=status.HTTP_404_NOT_FOUND)
 
+
+
+
+
+
+
+
+
+class ListUserVideoAnalysesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Filter video analyses by the requesting user
+        video_analyses = VideoAnalysis.objects.filter(user=request.user)
+
+        # Optional filtering by dominant emotion
+        emotion = request.query_params.get('emotion')
+        if emotion is not None:
+            video_analyses = video_analyses.filter(dominant_emotion__icontains=emotion)
+
+        # Pagination setup
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Set the number of analyses per page
+        result_page = paginator.paginate_queryset(video_analyses, request)
+
+        # Serialize the paginated data
+        serializer = VideoAnalysisSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+
+
+
+
+#AI Enabled View
+class CompareUserVideosView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        video_id_1 = request.data.get('video_id_1')
+        video_id_2 = request.data.get('video_id_2')
+
+        if not video_id_1 or not video_id_2:
+            return Response({"detail": "Both video IDs are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve videos and ensure they belong to the user
+        try:
+            video_1 = VideoAnalysis.objects.get(id=video_id_1, user=request.user)
+            video_2 = VideoAnalysis.objects.get(id=video_id_2, user=request.user)
+        except VideoAnalysis.DoesNotExist:
+            return Response({"detail": "One or both videos not found or do not belong to the user."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prepare the comparison data
+        comparison_data = {
+            "video_1": {
+                "title": video_1.title,
+                "calm_percentage": video_1.calm_percentage,
+                "dominant_emotion": video_1.dominant_emotion,
+                "emotion_counts": video_1.emotion_counts
+            },
+            "video_2": {
+                "title": video_2.title,
+                "calm_percentage": video_2.calm_percentage,
+                "dominant_emotion": video_2.dominant_emotion,
+                "emotion_counts": video_2.emotion_counts
+            }
+        }
+
+        return Response(comparison_data, status=status.HTTP_200_OK)
+
+
+
+
+
+class ListUserVideoSummariesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Retrieve all video analyses for the requesting user
+        video_analyses = VideoAnalysis.objects.filter(user=request.user)
+
+        # Create a summary with only the dominant emotion and calm percentage
+        summaries = [
+            {
+                "title": video.title,
+                "dominant_emotion": video.dominant_emotion,
+                "calm_percentage": video.calm_percentage
+            }
+            for video in video_analyses
+        ]
+
+        return Response(summaries, status=status.HTTP_200_OK)
+    
 
 
 
